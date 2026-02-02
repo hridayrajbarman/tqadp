@@ -5,34 +5,28 @@
     <title>MASTER ADMIN | TECH QA</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-zinc-950 text-white p-6 md:p-12 font-sans">
-
-    <header class="flex justify-between items-center border-b border-zinc-900 pb-10 mb-12">
-        <h1 class="text-3xl font-black tracking-tighter text-blue-500 italic uppercase">System Overseer</h1>
-        <div id="status" class="text-[9px] font-black px-4 py-1 rounded-full border border-zinc-800 uppercase tracking-widest">---</div>
+<body class="bg-black text-white p-6 md:p-12 font-sans">
+    <header class="flex justify-between items-end border-b border-zinc-800 pb-8 mb-12">
+        <div>
+            <h1 class="text-3xl font-black text-blue-500 italic uppercase">System Control</h1>
+            <p id="status" class="text-zinc-500 text-[9px] uppercase font-bold tracking-[0.3em] mt-2">Syncing...</p>
+        </div>
     </header>
 
     <div class="grid lg:grid-cols-3 gap-10">
-        <div class="bg-zinc-900/50 p-8 rounded-[3rem] border border-zinc-800 shadow-2xl">
-            <h2 class="text-xl font-bold mb-8 text-green-500 italic">Balance Update</h2>
+        <div class="bg-zinc-900/50 p-8 rounded-[2.5rem] border border-zinc-800 shadow-2xl">
+            <h2 class="text-xl font-bold mb-8 text-green-500 italic">Push Balance</h2>
             <div class="space-y-4">
-                <input id="target-user" type="text" placeholder="Username" class="w-full bg-black p-4 rounded-2xl border border-zinc-800 outline-none focus:border-green-500">
-                <input id="add-amt" type="number" placeholder="Amount" class="w-full bg-black p-4 rounded-2xl border border-zinc-800 outline-none focus:border-green-500">
-                <button onclick="updateBalance()" class="w-full bg-green-600 py-4 rounded-2xl font-black uppercase text-xs tracking-widest">Push</button>
+                <input id="target-user" type="text" placeholder="Username" class="w-full bg-black p-4 rounded-2xl border border-zinc-800 outline-none">
+                <input id="add-amt" type="number" placeholder="Amount" class="w-full bg-black p-4 rounded-2xl border border-zinc-800 outline-none">
+                <button onclick="updateBalance()" class="w-full bg-blue-600 py-4 rounded-2xl font-black uppercase text-xs">Update</button>
             </div>
         </div>
 
-        <div class="lg:col-span-2 bg-zinc-900/50 p-8 rounded-[3rem] border border-zinc-800 shadow-2xl">
-            <h2 class="text-xl font-bold mb-8 text-blue-500 italic uppercase tracking-widest">Live Activity</h2>
-            <div id="purchase-list" class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto pr-2 text-xs">
-                <p class="text-zinc-700 italic">No activity logs.</p>
-            </div>
-        </div>
-
-        <div class="lg:col-span-3 bg-zinc-900/50 p-8 rounded-[3rem] border border-zinc-800 shadow-2xl">
-            <h2 class="text-xl font-bold mb-8 text-indigo-400 italic text-center uppercase tracking-widest">Remote Access Control</h2>
-            <div id="user-list" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                <p class="text-zinc-700 italic text-center col-span-full py-20 uppercase font-black">Syncing...</p>
+        <div class="lg:col-span-2 bg-zinc-900/50 p-8 rounded-[2.5rem] border border-zinc-800">
+            <h2 class="text-xl font-bold mb-8 text-indigo-400 italic text-center uppercase tracking-widest">User Access Control</h2>
+            <div id="user-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <p class="text-zinc-700 italic text-center col-span-full py-20 font-black uppercase">Loading Database...</p>
             </div>
         </div>
     </div>
@@ -52,36 +46,20 @@
 
         onValue(ref(db, ".info/connected"), (s) => {
             const el = document.getElementById('status');
-            el.innerText = s.val() ? "● LIVE" : "● OFFLINE";
-            el.className = s.val() ? "text-green-500 border-green-500/20 px-4 py-1 rounded-full text-[9px] font-black" : "text-red-500 px-4 py-1 rounded-full text-[9px] font-black";
+            el.innerText = s.val() ? "● System Live" : "● Offline";
+            el.className = s.val() ? "text-green-500 font-bold" : "text-red-500 font-bold";
         });
 
         window.updateBalance = async () => {
             const user = document.getElementById('target-user').value.trim();
             const amt = parseFloat(document.getElementById('add-amt').value);
-            const userRef = ref(db, 'users/' + user);
-            const snap = await get(userRef);
+            const snap = await get(ref(db, 'users/' + user));
             if(snap.exists()){
                 const current = snap.val().balance || 0;
-                await update(userRef, { balance: current + amt });
-                alert("Updated.");
-            } else { alert("User unknown."); }
+                await update(ref(db, 'users/' + user), { balance: current + amt });
+                alert("Balance Pushed!");
+            } else { alert("User not found!"); }
         };
-
-        onValue(ref(db, 'purchases'), (snap) => {
-            const list = document.getElementById('purchase-list');
-            list.innerHTML = "";
-            const data = snap.val();
-            if(data) Object.keys(data).reverse().forEach(k => {
-                const p = data[k];
-                list.innerHTML += `
-                    <div class="bg-black p-5 rounded-3xl border border-zinc-800">
-                        <p class="text-[9px] text-blue-500 font-black uppercase mb-1 italic">Task: ${p.taskID}</p>
-                        <p class="font-black text-lg text-white italic truncate tracking-tighter">${p.username}</p>
-                        <p class="text-[10px] text-green-500 font-bold mt-2 italic uppercase">Fee: ₹${p.plan}</p>
-                    </div>`;
-            });
-        });
 
         onValue(ref(db, 'users'), (snap) => {
             const list = document.getElementById('user-list');
@@ -92,8 +70,8 @@
                 const p = u.permissions || {};
                 list.innerHTML += `
                 <div class="bg-black p-6 rounded-[2.5rem] border border-zinc-800 flex flex-col items-center">
-                    <p class="font-black text-lg italic text-white truncate w-full text-center">${u.name}</p>
-                    <p class="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mb-4 italic">Bal: ₹${u.balance || 0}</p>
+                    <p class="font-black text-white truncate w-full text-center tracking-tighter italic">${u.name}</p>
+                    <p class="text-[9px] text-zinc-500 font-bold uppercase mb-4 italic">Bal: ₹${u.balance || 0}</p>
                     <div class="grid grid-cols-2 gap-2 w-full pt-4 border-t border-zinc-900">
                         <button onclick="toggleT('${username}', 9, ${p.task9})" class="p-2 rounded-xl text-[7px] font-black uppercase ${p.task9 ? 'bg-green-600 text-white' : 'bg-zinc-800 text-zinc-600'}">T9: ${p.task9 ? 'ON' : 'OFF'}</button>
                         <button onclick="toggleT('${username}', 11, ${p.task11})" class="p-2 rounded-xl text-[7px] font-black uppercase ${p.task11 ? 'bg-green-600 text-white' : 'bg-zinc-800 text-zinc-600'}">T11: ${p.task11 ? 'ON' : 'OFF'}</button>
