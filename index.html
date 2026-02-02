@@ -7,25 +7,25 @@
 </head>
 <body class="bg-zinc-950 text-white p-6 md:p-12 font-sans">
     <header class="flex justify-between items-end border-b border-zinc-900 pb-10 mb-12">
-        <h1 class="text-3xl font-black text-blue-500 italic uppercase">System Control</h1>
-        <div id="status" class="text-[9px] font-black px-4 py-1 rounded-full border border-zinc-800 italic uppercase">Live Link</div>
+        <h1 class="text-3xl font-black text-blue-500 uppercase italic">Admin Panel</h1>
+        <div class="text-[9px] font-black px-4 py-1 rounded-full border border-zinc-800 uppercase italic">Live Database</div>
     </header>
 
     <div class="grid lg:grid-cols-2 gap-10">
         <div class="bg-zinc-900/50 p-8 rounded-[2.5rem] border border-zinc-800 shadow-2xl h-fit">
-            <h2 class="text-xl font-bold mb-8 text-orange-500 italic uppercase text-center tracking-widest">Withdrawal Queue</h2>
+            <h2 class="text-xl font-bold mb-8 text-orange-500 uppercase tracking-widest text-center">Withdrawal Queue</h2>
             <div id="withdraw-list" class="space-y-4 max-h-[500px] overflow-y-auto pr-2"></div>
         </div>
 
         <div class="bg-zinc-900/50 p-8 rounded-[2.5rem] border border-zinc-800 shadow-2xl h-fit">
-            <h2 class="text-xl font-bold mb-8 text-indigo-400 italic uppercase text-center tracking-widest">User Control Center</h2>
+            <h2 class="text-xl font-bold mb-8 text-indigo-400 uppercase tracking-widest text-center">User Controls</h2>
             <div id="user-list" class="space-y-4"></div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, update, onValue, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, update, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBMUzq53tvH-ntEJsfRj08ReeGMSd_RmrY",
@@ -36,37 +36,39 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
+        // WITHDRAWAL LIST
         onValue(ref(db, 'withdrawals'), (snap) => {
             const list = document.getElementById('withdraw-list'); list.innerHTML = "";
             const data = snap.val();
             if(data) Object.keys(data).reverse().forEach(k => {
                 const w = data[k];
-                list.innerHTML += `<div class="bg-black p-5 rounded-3xl border border-zinc-800 text-[10px] uppercase font-bold"><p class="text-blue-500 mb-2 font-black">USER: ${w.user} (ID: ${w.id})</p><p>BANK: ${w.bank}</p><p>A/C: ${w.acc}</p><p>IFSC: ${w.ifsc}</p><p class="text-lg text-orange-500 mt-2 font-black italic tracking-tighter">₹${w.amount}</p></div>`;
+                list.innerHTML += `<div class="bg-black p-5 rounded-3xl border border-zinc-800 text-[10px] uppercase font-bold"><p class="text-blue-500 mb-2 font-black">User: ${w.user}</p><p>Bank: ${w.bank}</p><p>A/C: ${w.acc}</p><p>IFSC: ${w.ifsc}</p><p class="text-lg text-orange-500 mt-2 font-black italic tracking-tighter">₹${w.amount}</p></div>`;
             });
         });
 
+        // FULL TASK UNLOCK
         onValue(ref(db, 'users'), (snap) => {
             const list = document.getElementById('user-list'); list.innerHTML = "";
             const data = snap.val();
             if(data) Object.keys(data).forEach(uName => {
                 const u = data[uName]; const p = u.permissions || {};
                 list.innerHTML += `
-                <div class="bg-black p-6 rounded-[2rem] border border-zinc-800 shadow-inner">
-                    <p class="font-black italic text-center uppercase text-blue-500 mb-2 tracking-widest">${u.name}</p>
-                    <p class="text-[9px] text-zinc-600 font-bold uppercase text-center mb-4 italic">BAL: ₹${u.balance || 0}</p>
+                <div class="bg-black p-6 rounded-[2rem] border border-zinc-800">
+                    <p class="font-black italic text-center uppercase text-blue-500 mb-2">${u.name}</p>
+                    <p class="text-[9px] text-zinc-600 font-bold uppercase text-center mb-4">Balance: ₹${u.balance || 0}</p>
                     <div class="grid grid-cols-4 gap-2 mb-4">
                         <button onclick="toggleT('${uName}', 9, ${p.task9})" class="p-2 rounded text-[7px] font-black ${p.task9 ? 'bg-green-600':'bg-zinc-800'}">T9</button>
                         <button onclick="toggleT('${uName}', 11, ${p.task11})" class="p-2 rounded text-[7px] font-black ${p.task11 ? 'bg-green-600':'bg-zinc-800'}">T11</button>
                         <button onclick="toggleT('${uName}', 16, ${p.task16})" class="p-2 rounded text-[7px] font-black ${p.task16 ? 'bg-green-600':'bg-zinc-800'}">T16</button>
                         <button onclick="toggleT('${uName}', 21, ${p.task21})" class="p-2 rounded text-[7px] font-black ${p.task21 ? 'bg-green-600':'bg-zinc-800'}">T21</button>
                     </div>
-                    <button onclick="pushBal('${uName}')" class="w-full bg-blue-600 py-2 rounded text-[8px] font-black uppercase italic tracking-widest">Push Balance</button>
+                    <button onclick="pushBal('${uName}')" class="w-full bg-blue-600 py-2 rounded text-[8px] font-black uppercase italic tracking-widest">Update Balance</button>
                 </div>`;
             });
         });
 
         window.toggleT = async (u, id, cur) => { await update(ref(db, `users/${u}/permissions`), { [`task${id}`]: !cur }); };
-        window.pushBal = async (u) => { const amt = prompt("Amount:"); if(amt) await update(ref(db, `users/${u}`), { balance: (parseFloat(amt)) }); };
+        window.pushBal = async (u) => { const amt = prompt("Set Amount:"); if(amt) await update(ref(db, `users/${u}`), { balance: (parseFloat(amt)) }); };
     </script>
 </body>
 </html>
