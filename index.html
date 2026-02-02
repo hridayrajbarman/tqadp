@@ -2,162 +2,110 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TECH QA | MASTER ADMIN</title>
+    <title>MASTER ADMIN | TECH QA</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-black text-white p-4 md:p-10 font-sans">
+<body class="bg-zinc-950 text-white p-6 md:p-12 font-sans">
 
-    <header class="mb-10 border-b border-gray-800 pb-5 flex justify-between items-center">
-        <div>
-            <h1 class="text-3xl font-black text-blue-500">MASTER ADMIN</h1>
-            <p class="text-xs text-gray-500 uppercase tracking-widest">Tech QA Portal Control</p>
-        </div>
-        <div class="text-right">
-            <p id="status-dot" class="text-yellow-500 font-bold text-xs">● CONNECTING...</p>
-        </div>
+    <header class="flex justify-between items-center border-b border-zinc-900 pb-10 mb-12">
+        <h1 class="text-3xl font-black tracking-tighter text-blue-500 italic uppercase">System Overseer</h1>
+        <div id="status" class="text-[9px] font-black px-4 py-1 rounded-full border border-zinc-800 uppercase tracking-widest">Syncing...</div>
     </header>
 
-    <div class="grid lg:grid-cols-3 gap-8">
-        
-        <div class="bg-gray-900 p-6 rounded-3xl border border-gray-800 shadow-2xl">
-            <h2 class="text-xl font-bold mb-6 text-green-400 flex items-center">
-                <span class="mr-2">💰</span> Add Balance
-            </h2>
+    <div class="grid lg:grid-cols-3 gap-10">
+        <div class="bg-zinc-900/50 p-8 rounded-[3rem] border border-zinc-800 shadow-2xl">
+            <h2 class="text-xl font-bold mb-8 text-green-500 italic">Balance Update</h2>
             <div class="space-y-4">
-                <div>
-                    <label class="text-[10px] text-gray-500 mb-1 block">TARGET USERNAME</label>
-                    <input id="target-user" type="text" placeholder="Enter Username" class="w-full bg-black border border-gray-700 p-3 rounded-xl outline-none focus:border-blue-500">
-                </div>
-                <div>
-                    <label class="text-[10px] text-gray-500 mb-1 block">AMOUNT TO ADD (Use - for subtract)</label>
-                    <input id="add-amt" type="number" placeholder="e.g. 5000" class="w-full bg-black border border-gray-700 p-3 rounded-xl outline-none focus:border-blue-500">
-                </div>
-                <button onclick="updateBalance()" class="w-full bg-blue-600 hover:bg-blue-700 py-4 rounded-xl font-bold transition-all">
-                    UPDATE DATABASE
-                </button>
+                <input id="target-user" type="text" placeholder="Username" class="w-full bg-black p-4 rounded-2xl border border-zinc-800 outline-none focus:border-green-500">
+                <input id="add-amt" type="number" placeholder="Amount (e.g. 5000)" class="w-full bg-black p-4 rounded-2xl border border-zinc-800 outline-none focus:border-green-500">
+                <button onclick="updateBalance()" class="w-full bg-green-600 py-4 rounded-2xl font-black uppercase text-xs tracking-widest">Push Balance</button>
             </div>
         </div>
 
-        <div class="lg:col-span-2 bg-gray-900 p-6 rounded-3xl border border-gray-800 shadow-2xl">
-            <h2 class="text-xl font-bold mb-6 text-orange-400">📥 Pending Withdrawals</h2>
-            <div id="logs" class="grid md:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2">
-                <p class="text-gray-600 italic">No pending requests found.</p>
+        <div class="lg:col-span-2 bg-zinc-900/50 p-8 rounded-[3rem] border border-zinc-800 shadow-2xl">
+            <h2 class="text-xl font-bold mb-8 text-blue-500 italic">Live Task Unlocks</h2>
+            <div id="purchase-list" class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto pr-2">
+                <p class="text-zinc-700 italic text-sm">Waiting for transactions...</p>
             </div>
         </div>
 
-        <div class="lg:col-span-3 bg-gray-900 p-6 rounded-3xl border border-gray-800 shadow-2xl">
-            <h2 class="text-xl font-bold mb-6 text-blue-400">👥 Registered Users Directory</h2>
-            <div id="user-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <p class="text-gray-600 italic">Loading user data...</p>
+        <div class="lg:col-span-3 bg-zinc-900/50 p-8 rounded-[3rem] border border-zinc-800 shadow-2xl">
+            <h2 class="text-xl font-bold mb-8 text-indigo-400 italic text-center uppercase tracking-widest">Remote Access Control</h2>
+            <div id="user-list" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <p class="text-zinc-700 italic text-center col-span-full py-20">Loading Database...</p>
             </div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, update, get, onValue, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, update, get, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        // Verified Config from your screenshots
         const firebaseConfig = {
             apiKey: "AIzaSyBMUzq53tvH-ntEJsfRj08ReeGMSd_RmrY",
-            authDomain: "techqaportal.firebaseapp.com",
             databaseURL: "https://techqaportal-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "techqaportal",
-            appId: "1:647160352590:web:ed264064d71def5480981f"
+            projectId: "techqaportal"
         };
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
-        const statusDot = document.getElementById('status-dot');
 
-        // Check Connection
-        const connectedRef = ref(db, ".info/connected");
-        onValue(connectedRef, (snap) => {
-            if (snap.val() === true) {
-                statusDot.innerText = "● LIVE CONNECTED";
-                statusDot.className = "text-green-500 font-bold text-xs";
-            } else {
-                statusDot.innerText = "● DISCONNECTED";
-                statusDot.className = "text-red-500 font-bold text-xs";
-            }
+        onValue(ref(db, ".info/connected"), (s) => {
+            const el = document.getElementById('status');
+            el.innerText = s.val() ? "● System Online" : "● Database Offline";
+            el.className = s.val() ? "text-green-500 border-green-500/20 px-4 py-1 rounded-full text-[9px] font-black uppercase tracking-widest" : "text-red-500 px-4 py-1 rounded-full text-[9px] font-black uppercase tracking-widest";
         });
 
-        // 1. UPDATE USER BALANCE
         window.updateBalance = async () => {
             const user = document.getElementById('target-user').value.trim();
             const amt = parseFloat(document.getElementById('add-amt').value);
-            
-            if(!user || isNaN(amt)) return alert("Please enter username and amount");
-
             const userRef = ref(db, 'users/' + user);
             const snap = await get(userRef);
-
             if(snap.exists()){
-                const currentBal = snap.val().balance || 0;
-                await update(userRef, { balance: currentBal + amt });
-                alert(`SUCCESS! \nUser: ${user} \nAdded: ₹${amt} \nNew Balance: ₹${currentBal + amt}`);
-                document.getElementById('add-amt').value = "";
-            } else {
-                alert("ERROR: Username '" + user + "' not found in database.");
-            }
+                const current = snap.val().balance || 0;
+                await update(userRef, { balance: current + amt });
+                alert("Balance Pushed!");
+            } else { alert("User not found!"); }
         };
 
-        // 2. LIVE WITHDRAWAL TRACKER
-        onValue(ref(db, 'withdrawals'), (snap) => {
-            const list = document.getElementById('logs');
+        onValue(ref(db, 'purchases'), (snap) => {
+            const list = document.getElementById('purchase-list');
             list.innerHTML = "";
             const data = snap.val();
-            if(data) {
-                Object.keys(data).forEach(k => {
-                    const r = data[k];
-                    list.innerHTML += `
-                    <div class="bg-black p-5 rounded-2xl border border-gray-800 hover:border-orange-500/50 transition-all">
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="text-[10px] text-gray-500 font-mono italic">ID: ${r.id || 'N/A'}</span>
-                            <button onclick="deleteReq('${k}')" class="text-red-500 text-[10px] font-bold uppercase">Delete</button>
-                        </div>
-                        <p class="font-bold text-lg text-white">${r.user}</p>
-                        <p class="text-2xl font-black text-orange-500">₹${r.amount}</p>
-                        <div class="mt-3 space-y-1 text-[10px] text-gray-400">
-                            <p class="bg-gray-800 p-1 rounded">ACC: ${r.acc}</p>
-                            <p class="bg-gray-800 p-1 rounded">IFSC: ${r.ifsc || 'N/A'}</p>
-                        </div>
+            if(data) Object.keys(data).reverse().forEach(k => {
+                const p = data[k];
+                list.innerHTML += `
+                    <div class="bg-black p-5 rounded-3xl border border-zinc-800">
+                        <p class="text-[9px] text-blue-500 font-black uppercase mb-1">Task Unlocked: ${p.taskID}</p>
+                        <p class="font-black text-lg italic text-white">${p.username}</p>
+                        <p class="text-[10px] text-green-500 font-bold mt-2">Paid: ₹${p.plan}</p>
                     </div>`;
-                });
-            } else {
-                list.innerHTML = "<p class='text-gray-600 italic'>No pending requests found.</p>";
-            }
+            });
         });
 
-        // 3. LIVE USER DIRECTORY
         onValue(ref(db, 'users'), (snap) => {
             const list = document.getElementById('user-list');
             list.innerHTML = "";
             const data = snap.val();
-            if(data) {
-                Object.keys(data).forEach(k => {
-                    const u = data[k];
-                    list.innerHTML += `
-                    <div class="bg-black p-4 rounded-2xl border border-gray-800">
-                        <p class="font-bold text-blue-400 truncate">${u.name || u.username}</p>
-                        <p class="text-[10px] text-gray-500 italic mb-2">@${u.username}</p>
-                        <div class="space-y-1 text-[10px] text-gray-400">
-                            <p>📞 ${u.mobile || 'N/A'}</p>
-                            <p>📧 ${u.email || 'N/A'}</p>
-                        </div>
-                        <p class="text-lg font-black text-green-500 mt-3">₹${u.balance || 0}</p>
-                    </div>`;
-                });
-            } else {
-                list.innerHTML = "<p class='text-gray-600 italic'>No users registered yet.</p>";
-            }
+            if(data) Object.keys(data).forEach(username => {
+                const u = data[username];
+                const p = u.permissions || {};
+                list.innerHTML += `
+                <div class="bg-black p-6 rounded-[2.5rem] border border-zinc-800 flex flex-col items-center text-center">
+                    <p class="font-black text-lg italic mb-1 text-white">${u.name}</p>
+                    <p class="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mb-4">Bal: ₹${u.balance || 0}</p>
+                    <div class="grid grid-cols-2 gap-2 w-full pt-4 border-t border-zinc-900">
+                        <button onclick="toggleT('${username}', 9, ${p.task9})" class="p-2 rounded-xl text-[8px] font-black uppercase ${p.task9 ? 'bg-green-600 text-white' : 'bg-zinc-800 text-zinc-500'}">T9: ${p.task9 ? 'ON' : 'OFF'}</button>
+                        <button onclick="toggleT('${username}', 11, ${p.task11})" class="p-2 rounded-xl text-[8px] font-black uppercase ${p.task11 ? 'bg-green-600 text-white' : 'bg-zinc-800 text-zinc-500'}">T11: ${p.task11 ? 'ON' : 'OFF'}</button>
+                        <button onclick="toggleT('${username}', 16, ${p.task16})" class="p-2 rounded-xl text-[8px] font-black uppercase ${p.task16 ? 'bg-green-600 text-white' : 'bg-zinc-800 text-zinc-500'}">T16: ${p.task16 ? 'ON' : 'OFF'}</button>
+                        <button onclick="toggleT('${username}', 21, ${p.task21})" class="p-2 rounded-xl text-[8px] font-black uppercase ${p.task21 ? 'bg-green-600 text-white' : 'bg-zinc-800 text-zinc-500'}">T21: ${p.task21 ? 'ON' : 'OFF'}</button>
+                    </div>
+                </div>`;
+            });
         });
 
-        window.deleteReq = (key) => {
-            if(confirm("Process and delete this request?")) {
-                remove(ref(db, 'withdrawals/' + key));
-            }
+        window.toggleT = async (user, id, current) => {
+            await update(ref(db, `users/${user}/permissions`), { [`task${id}`]: !current });
         };
     </script>
 </body>
