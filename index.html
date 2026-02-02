@@ -6,37 +6,26 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-zinc-950 text-white p-6 md:p-12 font-sans">
-    <header class="flex justify-between items-end border-b border-zinc-900 pb-8 mb-12">
+    <header class="flex justify-between items-end border-b border-zinc-900 pb-10 mb-12">
         <h1 class="text-3xl font-black text-blue-500 italic uppercase">System Control</h1>
-        <div id="status" class="text-[9px] font-black px-4 py-1 rounded-full border border-zinc-800 italic">Syncing...</div>
+        <div id="status" class="text-[9px] font-black px-4 py-1 rounded-full border border-zinc-800 italic uppercase">Live Link</div>
     </header>
 
-    <div class="grid lg:grid-cols-3 gap-10">
-        <div class="bg-zinc-900/50 p-8 rounded-[2.5rem] border border-zinc-800 h-fit">
-            <h2 class="text-xl font-bold mb-8 text-green-500 italic uppercase tracking-widest">Push Balance</h2>
-            <div class="space-y-4">
-                <input id="target-user" type="text" placeholder="Username" class="w-full bg-black p-4 rounded-2xl border border-zinc-800 outline-none">
-                <input id="add-amt" type="number" placeholder="Amount" class="w-full bg-black p-4 rounded-2xl border border-zinc-800 outline-none">
-                <button onclick="updateBalance()" class="w-full bg-blue-600 py-4 rounded-2xl font-black uppercase text-xs italic tracking-widest">Submit</button>
-            </div>
+    <div class="grid lg:grid-cols-2 gap-10">
+        <div class="bg-zinc-900/50 p-8 rounded-[2.5rem] border border-zinc-800 shadow-2xl">
+            <h2 class="text-xl font-bold mb-8 text-orange-500 italic uppercase tracking-widest text-center">Withdrawal Queue</h2>
+            <div id="withdraw-list" class="space-y-4 max-h-[500px] overflow-y-auto pr-2"></div>
         </div>
 
-        <div class="lg:col-span-2 bg-zinc-900/50 p-8 rounded-[2.5rem] border border-zinc-800">
-            <h2 class="text-xl font-bold mb-8 text-orange-500 italic uppercase tracking-widest">Withdrawal Requests</h2>
-            <div id="withdrawal-list" class="space-y-4 max-h-[400px] overflow-y-auto pr-2">
-                <p class="text-zinc-700 italic text-center py-20 font-black uppercase">No Pending Requests</p>
-            </div>
-        </div>
-
-        <div class="lg:col-span-3 bg-zinc-900/50 p-8 rounded-[3rem] border border-zinc-800 shadow-2xl">
-            <h2 class="text-xl font-bold mb-8 text-indigo-400 italic text-center uppercase tracking-widest">Task Unlock Control</h2>
-            <div id="user-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        <div class="bg-zinc-900/50 p-8 rounded-[2.5rem] border border-zinc-800 shadow-2xl">
+            <h2 class="text-xl font-bold mb-8 text-indigo-400 italic uppercase tracking-widest text-center">User Access Center</h2>
+            <div id="user-list" class="space-y-4"></div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, update, get, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, update, onValue, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBMUzq53tvH-ntEJsfRj08ReeGMSd_RmrY",
@@ -47,69 +36,39 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // LIVE STATUS
-        onValue(ref(db, ".info/connected"), (s) => {
-            const el = document.getElementById('status');
-            el.innerText = s.val() ? "● System Online" : "● Offline";
-            el.className = s.val() ? "text-green-500 font-bold" : "text-red-500 font-bold";
-        });
-
-        // WITHDRAWAL REQUESTS LIST
+        // WITHDRAWAL VIEW
         onValue(ref(db, 'withdrawals'), (snap) => {
-            const list = document.getElementById('withdrawal-list');
-            list.innerHTML = "";
+            const list = document.getElementById('withdraw-list'); list.innerHTML = "";
             const data = snap.val();
             if(data) Object.keys(data).reverse().forEach(k => {
                 const w = data[k];
-                list.innerHTML += `
-                <div class="bg-black p-6 rounded-3xl border border-zinc-800">
-                    <p class="text-blue-500 font-black uppercase text-xs mb-2 italic">User: ${w.user} (ID: ${w.id})</p>
-                    <div class="grid grid-cols-2 gap-2 text-[10px] uppercase font-bold text-zinc-400">
-                        <p>Bank: <span class="text-white">${w.bank}</span></p>
-                        <p>Holder: <span class="text-white">${w.name}</span></p>
-                        <p>A/C: <span class="text-white">${w.acc}</span></p>
-                        <p>IFSC: <span class="text-white">${w.ifsc}</span></p>
-                    </div>
-                    <p class="text-orange-500 font-black text-lg mt-4 italic">₹${w.amount}</p>
-                </div>`;
+                list.innerHTML += `<div class="bg-black p-5 rounded-3xl border border-zinc-800 text-[10px] uppercase font-bold"><p class="text-blue-500 mb-2 font-black">USER: ${w.user} (ID: ${w.id})</p><p>BANK: ${w.bank}</p><p>A/C: ${w.acc}</p><p>IFSC: ${w.ifsc}</p><p class="text-lg text-orange-500 mt-2 font-black italic">₹${w.amount}</p></div>`;
             });
         });
 
-        // USER LIST WITH TASK UNLOCKS
+        // FULL TASK UNLOCK
         onValue(ref(db, 'users'), (snap) => {
-            const list = document.getElementById('user-list');
-            list.innerHTML = "";
+            const list = document.getElementById('user-list'); list.innerHTML = "";
             const data = snap.val();
-            if(data) Object.keys(data).forEach(username => {
-                const u = data[username];
+            if(data) Object.keys(data).forEach(uName => {
+                const u = data[uName]; const p = u.permissions || {};
                 list.innerHTML += `
-                <div class="bg-black p-6 rounded-[2.5rem] border border-zinc-800">
-                    <p class="font-black italic text-center uppercase mb-1 text-blue-500">${u.name}</p>
-                    <p class="text-[9px] text-zinc-600 font-bold uppercase text-center mb-4 italic">Bal: ₹${u.balance || 0}</p>
-                    
-                    <div class="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-zinc-900">
-                        <button onclick="toggleT('${username}', 9, ${u.permissions?.task9})" class="p-2 rounded-xl text-[7px] font-black uppercase ${u.permissions?.task9 ? 'bg-green-600 text-white' : 'bg-zinc-800 text-zinc-600'}">Unlock T9</button>
-                        <button onclick="toggleT('${username}', 11, ${u.permissions?.task11})" class="p-2 rounded-xl text-[7px] font-black uppercase ${u.permissions?.task11 ? 'bg-green-600 text-white' : 'bg-zinc-800 text-zinc-600'}">Unlock T11</button>
-                        <button onclick="toggleT('${username}', 16, ${u.permissions?.task16})" class="p-2 rounded-xl text-[7px] font-black uppercase ${u.permissions?.task16 ? 'bg-green-600 text-white' : 'bg-zinc-800 text-zinc-600'}">Unlock T16</button>
-                        <button onclick="toggleT('${username}', 21, ${u.permissions?.task21})" class="p-2 rounded-xl text-[7px] font-black uppercase ${u.permissions?.task21 ? 'bg-green-600 text-white' : 'bg-zinc-800 text-zinc-600'}">Unlock T21</button>
+                <div class="bg-black p-6 rounded-[2rem] border border-zinc-800">
+                    <p class="font-black italic text-center uppercase text-blue-500 mb-2">${u.name}</p>
+                    <p class="text-[9px] text-zinc-600 font-bold uppercase text-center mb-4">BAL: ₹${u.balance || 0}</p>
+                    <div class="grid grid-cols-4 gap-2 mb-4">
+                        <button onclick="toggleT('${uName}', 9, ${p.task9})" class="p-2 rounded text-[7px] font-black ${p.task9 ? 'bg-green-600':'bg-zinc-800'}">T9</button>
+                        <button onclick="toggleT('${uName}', 11, ${p.task11})" class="p-2 rounded text-[7px] font-black ${p.task11 ? 'bg-green-600':'bg-zinc-800'}">T11</button>
+                        <button onclick="toggleT('${uName}', 16, ${p.task16})" class="p-2 rounded text-[7px] font-black ${p.task16 ? 'bg-green-600':'bg-zinc-800'}">T16</button>
+                        <button onclick="toggleT('${uName}', 21, ${p.task21})" class="p-2 rounded text-[7px] font-black ${p.task21 ? 'bg-green-600':'bg-zinc-800'}">T21</button>
                     </div>
+                    <button onclick="pushBal('${uName}')" class="w-full bg-blue-600 py-2 rounded text-[8px] font-black uppercase">Push Balance</button>
                 </div>`;
             });
         });
 
-        window.updateBalance = async () => {
-            const user = document.getElementById('target-user').value.trim();
-            const amt = parseFloat(document.getElementById('add-amt').value);
-            const snap = await get(ref(db, 'users/' + user));
-            if(snap.exists()){
-                await update(ref(db, 'users/' + user), { balance: (snap.val().balance || 0) + amt });
-                alert("Balance Updated!");
-            } else { alert("User not found!"); }
-        };
-
-        window.toggleT = async (user, id, current) => {
-            await update(ref(db, `users/${user}/permissions`), { [`task${id}`]: !current });
-        };
+        window.toggleT = async (u, id, cur) => { await update(ref(db, `users/${u}/permissions`), { [`task${id}`]: !cur }); };
+        window.pushBal = async (u) => { const amt = prompt("Amount:"); if(amt) await update(ref(db, `users/${u}`), { balance: (parseFloat(amt)) }); };
     </script>
 </body>
 </html>
