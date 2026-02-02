@@ -8,19 +8,19 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body class="bg-zinc-950 text-white p-6 md:p-12 font-sans">
-    <header class="flex justify-between border-b border-zinc-900 pb-10 mb-12">
-        <h1 class="text-3xl font-black text-blue-500 uppercase italic">Admin Panel</h1>
-        <div class="text-[9px] font-black px-4 py-1 rounded-full border border-zinc-800 uppercase italic">Live DB</div>
+    <header class="flex justify-between items-end border-b border-zinc-900 pb-10 mb-12">
+        <h1 class="text-3xl font-black text-blue-500 uppercase italic">Admin System</h1>
+        <div class="text-[9px] font-black px-4 py-1 rounded-full border border-zinc-800 uppercase italic">Live Sync</div>
     </header>
 
     <div class="grid lg:grid-cols-2 gap-10">
         <div class="bg-zinc-900/50 p-8 rounded-[2.5rem] border border-zinc-800 shadow-2xl">
-            <h2 class="text-xl font-bold mb-8 text-orange-500 uppercase text-center italic">Withdrawal Requests</h2>
+            <h2 class="text-xl font-bold mb-8 text-orange-500 uppercase tracking-widest text-center italic">User Withdrawal Queue</h2>
             <div id="withdraw-list" class="space-y-4 max-h-[500px] overflow-y-auto pr-2"></div>
         </div>
 
         <div class="bg-zinc-900/50 p-8 rounded-[2.5rem] border border-zinc-800 shadow-2xl">
-            <h2 class="text-xl font-bold mb-8 text-indigo-400 uppercase text-center italic">User Access Control</h2>
+            <h2 class="text-xl font-bold mb-8 text-indigo-400 uppercase tracking-widest text-center italic">User Control & Payment Settings</h2>
             <div id="user-list" class="space-y-4"></div>
         </div>
     </div>
@@ -32,35 +32,58 @@
         });
         const db = firebase.database();
 
+        // RENDER WITHDRAWALS
         db.ref('withdrawals').on('value', snap => {
             const list = document.getElementById('withdraw-list'); list.innerHTML = "";
             snap.forEach(child => {
                 const w = child.val();
-                list.innerHTML += `<div class="bg-black p-5 rounded-3xl border border-zinc-800 text-[10px] uppercase font-bold"><p class="text-blue-500 mb-2 font-black">User: ${w.user}</p><p>Bank: ${w.bank}</p><p>A/C: ${w.acc}</p><p>IFSC: ${w.ifsc}</p><p class="text-lg text-orange-500 mt-2 font-black italic">₹${w.amount}</p></div>`;
+                list.innerHTML += `<div class="bg-black p-5 rounded-3xl border border-zinc-800 text-[10px] uppercase font-bold">
+                    <p class="text-blue-500 mb-2 font-black">User: ${w.user} (ID: ${w.id})</p>
+                    <p>Bank: <span class="text-white">${w.bank}</span></p>
+                    <p>A/C: <span class="text-white">${w.acc}</span></p>
+                    <p>IFSC: <span class="text-white">${w.ifsc}</span></p>
+                    <p class="text-lg text-orange-500 mt-2 font-black italic tracking-tighter">Amount: ₹${w.amount}</p>
+                </div>`;
             });
         });
 
+        // RENDER USER LIST
         db.ref('users').on('value', snap => {
             const list = document.getElementById('user-list'); list.innerHTML = "";
             snap.forEach(child => {
-                const u = child.val(); const uName = child.key; const p = u.permissions || {};
+                const u = child.val(); const uName = child.key; const p = u.permissions || {}; const d = u.depositDetails || {};
                 list.innerHTML += `
                 <div class="bg-black p-6 rounded-[2rem] border border-zinc-800">
-                    <p class="font-black italic text-center uppercase text-blue-500 mb-2">${u.name}</p>
-                    <p class="text-[9px] text-zinc-600 font-bold uppercase text-center mb-4">Balance: ₹${u.balance || 0}</p>
-                    <div class="grid grid-cols-4 gap-2 mb-4">
+                    <p class="font-black italic text-center uppercase text-blue-500 mb-1 tracking-widest">${u.name}</p>
+                    <p class="text-[9px] text-zinc-600 font-bold uppercase text-center mb-4 italic">Bal: ₹${u.balance || 0}</p>
+                    
+                    <div class="space-y-2 mb-4 bg-zinc-900 p-4 rounded-3xl border border-zinc-800">
+                        <p class="text-[8px] text-zinc-500 font-black uppercase text-center">Set Deposit Details</p>
+                        <input id="bank-${uName}" value="${d.bankName || ''}" placeholder="Bank Name" class="w-full bg-black text-[9px] p-2 rounded border border-zinc-800">
+                        <input id="accName-${uName}" value="${d.accName || ''}" placeholder="Holder Name" class="w-full bg-black text-[9px] p-2 rounded border border-zinc-800">
+                        <input id="accNo-${uName}" value="${d.accNo || ''}" placeholder="Acc No" class="w-full bg-black text-[9px] p-2 rounded border border-zinc-800">
+                        <input id="ifsc-${uName}" value="${d.ifsc || ''}" placeholder="IFSC" class="w-full bg-black text-[9px] p-2 rounded border border-zinc-800">
+                        <input id="upi-${uName}" value="${d.upi || ''}" placeholder="UPI ID" class="w-full bg-black text-[9px] p-2 rounded border border-zinc-800">
+                        <button onclick="saveManualDeposit('${uName}')" class="w-full bg-blue-600 py-2 rounded text-[8px] font-black uppercase italic tracking-widest">Update Payment Info</button>
+                    </div>
+
+                    <div class="grid grid-cols-4 gap-2 mb-4 pt-4 border-t border-zinc-900">
                         <button onclick="toggleT('${uName}', 9, ${p.task9})" class="p-2 rounded text-[7px] font-black ${p.task9 ? 'bg-green-600':'bg-zinc-800'}">T9</button>
                         <button onclick="toggleT('${uName}', 11, ${p.task11})" class="p-2 rounded text-[7px] font-black ${p.task11 ? 'bg-green-600':'bg-zinc-800'}">T11</button>
                         <button onclick="toggleT('${uName}', 16, ${p.task16})" class="p-2 rounded text-[7px] font-black ${p.task16 ? 'bg-green-600':'bg-zinc-800'}">T16</button>
                         <button onclick="toggleT('${uName}', 21, ${p.task21})" class="p-2 rounded text-[7px] font-black ${p.task21 ? 'bg-green-600':'bg-zinc-800'}">T21</button>
                     </div>
-                    <button onclick="pushBal('${uName}')" class="w-full bg-blue-600 py-2 rounded text-[8px] font-black uppercase italic">Set Balance</button>
+                    <button onclick="pushBal('${uName}')" class="w-full bg-zinc-800 py-2 rounded text-[8px] font-black uppercase italic tracking-widest">Add Balance</button>
                 </div>`;
             });
         });
 
+        window.saveManualDeposit = function(u) {
+            const det = { bankName: document.getElementById('bank-'+u).value, accName: document.getElementById('accName-'+u).value, accNo: document.getElementById('accNo-'+u).value, ifsc: document.getElementById('ifsc-'+u).value, upi: document.getElementById('upi-'+u).value };
+            db.ref('users/' + u + '/depositDetails').update(det); alert("Details saved.");
+        };
         window.toggleT = function(u, id, cur) { db.ref('users/' + u + '/permissions').update({ ['task' + id]: !cur }); };
-        window.pushBal = function(u) { const amt = prompt("Balance:"); if(amt) db.ref('users/' + u).update({ balance: parseFloat(amt) }); };
+        window.pushBal = function(u) { const amt = prompt("Amount to ADD:"); if(amt) db.ref('users/' + u).once('value').then(s => { db.ref('users/' + u).update({ balance: (s.val().balance || 0) + parseFloat(amt) }); }); };
     </script>
 </body>
 </html>
