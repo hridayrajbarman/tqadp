@@ -6,21 +6,31 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-zinc-950 text-white p-6 md:p-12 font-sans">
-    <header class="flex justify-between items-end border-b border-zinc-900 pb-10 mb-12">
-        <h1 class="text-3xl font-black text-blue-500 uppercase italic">System Control</h1>
-        <div id="status" class="text-[9px] font-black px-4 py-1 rounded-full border border-zinc-800 uppercase italic">Live Sync</div>
+    <header class="flex justify-between items-end border-b border-zinc-900 pb-10 mb-12 px-2">
+        <h1 class="text-3xl font-black text-blue-500 uppercase italic">System overseer</h1>
+        <div id="status" class="text-[9px] font-black px-4 py-1 rounded-full border border-zinc-800 uppercase italic">Live Database Link</div>
     </header>
 
     <div class="grid lg:grid-cols-3 gap-10">
-        <div class="lg:col-span-3 bg-zinc-900/50 p-8 rounded-[3rem] border border-zinc-800">
-            <h2 class="text-xl font-bold mb-8 text-indigo-400 italic text-center uppercase tracking-widest">User Payment & Access Control</h2>
+        <div class="lg:col-span-3 bg-zinc-900/50 p-8 rounded-[2.5rem] border border-zinc-800 shadow-2xl">
+            <h2 class="text-xl font-bold mb-8 text-indigo-400 italic text-center uppercase tracking-widest">User Control & Individual Payment Settings</h2>
             <div id="user-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
         </div>
     </div>
 
     <script type="module">
-        // Import initialization remains same
-        
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, update, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBMUzq53tvH-ntEJsfRj08ReeGMSd_RmrY",
+            databaseURL: "https://techqaportal-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "techqaportal"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
         onValue(ref(db, 'users'), (snap) => {
             const list = document.getElementById('user-list');
             list.innerHTML = "";
@@ -28,43 +38,38 @@
             if(data) Object.keys(data).forEach(username => {
                 const u = data[username];
                 const d = u.depositDetails || {};
-                
                 list.innerHTML += `
-                <div class="bg-black p-6 rounded-[2.5rem] border border-zinc-800">
-                    <p class="font-black italic text-center uppercase text-blue-500 mb-1">${u.name}</p>
-                    <p class="text-[9px] text-zinc-600 font-bold uppercase text-center mb-4">Bal: ₹${u.balance || 0}</p>
+                <div class="bg-black p-6 rounded-[2.5rem] border border-zinc-800 shadow-inner">
+                    <p class="font-black italic text-center uppercase text-blue-500 mb-1 tracking-widest">${u.name}</p>
+                    <p class="text-[9px] text-zinc-600 font-bold uppercase text-center mb-4 italic">ID: ${u.userID} | Bal: ₹${u.balance || 0}</p>
                     
-                    <div class="space-y-2 mb-4 bg-zinc-900 p-4 rounded-2xl">
-                        <p class="text-[8px] text-zinc-500 font-black uppercase">Set Deposit Info for User</p>
+                    <div class="space-y-2 mb-4 bg-zinc-900 p-4 rounded-3xl border border-zinc-800">
+                        <p class="text-[8px] text-zinc-500 font-black uppercase text-center mb-1">Set Individual Deposit Details</p>
                         <input id="bank-${username}" value="${d.bankName || ''}" placeholder="Bank Name" class="w-full bg-black text-[9px] p-2 rounded border border-zinc-800">
-                        <input id="accName-${username}" value="${d.accName || ''}" placeholder="A/C Holder Name" class="w-full bg-black text-[9px] p-2 rounded border border-zinc-800">
+                        <input id="accName-${username}" value="${d.accName || ''}" placeholder="Holder Name" class="w-full bg-black text-[9px] p-2 rounded border border-zinc-800">
                         <input id="accNo-${username}" value="${d.accNo || ''}" placeholder="Account No" class="w-full bg-black text-[9px] p-2 rounded border border-zinc-800">
                         <input id="ifsc-${username}" value="${d.ifsc || ''}" placeholder="IFSC" class="w-full bg-black text-[9px] p-2 rounded border border-zinc-800">
-                        <input id="branch-${username}" value="${d.branch || ''}" placeholder="Branch" class="w-full bg-black text-[9px] p-2 rounded border border-zinc-800">
+                        <input id="branch-${username}" value="${d.branch || ''}" placeholder="Branch Name" class="w-full bg-black text-[9px] p-2 rounded border border-zinc-800">
                         <input id="upi-${username}" value="${d.upi || ''}" placeholder="UPI ID" class="w-full bg-black text-[9px] p-2 rounded border border-zinc-800">
-                        <button onclick="saveManualDeposit('${username}')" class="w-full bg-blue-600 py-2 rounded text-[8px] font-black uppercase italic hover:bg-blue-500">Save To User Panel</button>
+                        <button onclick="saveManualDeposit('${username}')" class="w-full bg-blue-600 py-2 rounded text-[8px] font-black uppercase italic tracking-widest">Save To User Panel</button>
                     </div>
 
-                    <div class="flex gap-2">
-                        <button onclick="toggleT('${username}', 9, ${u.permissions?.task9})" class="flex-1 p-2 rounded text-[7px] font-black uppercase ${u.permissions?.task9 ? 'bg-green-600' : 'bg-zinc-800'}">T9</button>
+                    <div class="flex gap-2 border-t border-zinc-900 pt-4">
+                        <button onclick="toggleT('${username}', 9, ${u.permissions?.task9})" class="flex-1 p-2 rounded text-[7px] font-black uppercase ${u.permissions?.task9 ? 'bg-green-600' : 'bg-zinc-800'}">Unlock T9</button>
                     </div>
                 </div>`;
             });
         });
 
-        window.saveManualDeposit = async (username) => {
-            const details = {
-                bankName: document.getElementById(`bank-${username}`).value,
-                accName: document.getElementById(`accName-${username}`).value,
-                accNo: document.getElementById(`accNo-${username}`).value,
-                ifsc: document.getElementById(`ifsc-${username}`).value,
-                branch: document.getElementById(`branch-${username}`).value,
-                upi: document.getElementById(`upi-${username}`).value
-            };
-            await update(ref(db, `users/${username}/depositDetails`), details);
-            alert("Payment details successfully sent to " + username);
+        window.saveManualDeposit = async (u) => {
+            const details = { bankName: document.getElementById('bank-'+u).value, accName: document.getElementById('accName-'+u).value, accNo: document.getElementById('accNo-'+u).value, ifsc: document.getElementById('ifsc-'+u).value, branch: document.getElementById('branch-'+u).value, upi: document.getElementById('upi-'+u).value };
+            await update(ref(db, `users/${u}/depositDetails`), details);
+            alert("New deposit details sent to " + u);
         };
-        // Toggle Task logic remains same
+
+        window.toggleT = async (user, id, current) => {
+            await update(ref(db, `users/${user}/permissions`), { [`task${id}`]: !current });
+        };
     </script>
 </body>
 </html>
